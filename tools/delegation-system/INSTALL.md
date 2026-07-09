@@ -78,3 +78,4 @@ Steps 1–5 are mechanical; 6–7 are live end-to-end tests.
    Expected: a one-sentence answer citing `src/math.js` or `README.md`, proving delegation to the Sonnet-pinned researcher works end to end.
 8. If `~/.claude/agents/` didn't exist before the current interactive session, remind the user to restart Claude Code once so the watcher picks it up.
 9. Run `check.sh` from this tool directory — every line should end `OK`.
+10. Optional but recommended on first install: run the live shakedown in `SHAKEDOWN.md` — it exercises every delegation lane end to end (routing, backgrounding, briefs, verification) and finishes with a scorecard.

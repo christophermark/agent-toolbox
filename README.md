@@ -29,11 +29,12 @@ Every entry under `tools/` follows the same contract:
 tools/<name>/
 ├── README.md    # the card: what it is, when to use it, usage patterns, troubleshooting
 ├── INSTALL.md   # agent-executable install: preflight checks, file map, idempotency rules, verification
-├── files/       # canonical payloads — the actual files that get installed, byte-for-byte
-└── check.sh     # optional: diffs the installed reality against files/ to detect drift
+├── files/        # canonical payloads — the actual files that get installed, byte-for-byte
+├── check.sh      # optional: diffs the installed reality against files/ to detect drift
+└── SHAKEDOWN.md  # optional: an agent-runnable prompt that live-tests the installed tool end to end
 ```
 
-Two rules make this work:
+Three rules make this work:
 
 1. **`files/` is the single source of truth.** Install docs reference payloads by
    path; they never embed a second copy. (The predecessor of this repo lived in
@@ -43,12 +44,16 @@ Two rules make this work:
    it ships a `check.sh` that compares the installed files against `files/` and
    exits non-zero on drift. Run it after installing, and again whenever you
    suspect your local copies have wandered.
+3. **Prove it works, live.** Static checks catch drift, not behavior. A tool whose
+   behavior can regress silently ships a `SHAKEDOWN.md` — a prompt you hand to
+   your agent that exercises the installed tool end to end and reports a
+   scorecard against explicit pass criteria.
 
 ## Adding a tool
 
 1. Create `tools/<name>/` with the contract above. `README.md` and `files/` are
    required; `INSTALL.md` is required if installation is more than "copy one file";
-   `check.sh` if drift would hurt.
+   `check.sh` if drift would hurt; `SHAKEDOWN.md` if behavior can regress silently.
 2. Payloads must be portable: `~` or `$HOME`, never absolute user paths; no
    secrets, tokens, or machine-specific config.
 3. Write `INSTALL.md` for a cold-start agent: preflight (what versions/binaries to

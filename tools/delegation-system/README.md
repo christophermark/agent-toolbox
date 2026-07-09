@@ -36,6 +36,18 @@ Give an implementing agent this prompt:
 Read tools/delegation-system/INSTALL.md and install as described. Show me diffs before overwriting anything that already exists.
 ```
 
+## Validate
+
+Two layers:
+
+- **Static** — `./check.sh` diffs every installed file against `files/`; seven
+  `OK` lines means no drift.
+- **Dynamic** — [SHAKEDOWN.md](SHAKEDOWN.md) is a prompt you hand to your
+  orchestrator session: it plants a bug in a throwaway repo, exercises all six
+  delegation lanes against it (background Codex audit, Explore, researcher,
+  implementer, verifier, integration), and reports a scorecard. Run it after
+  first install and after upgrading Claude Code or the Codex CLI.
+
 ## Usage patterns
 
 Verbatim prompts you can use or adapt:
