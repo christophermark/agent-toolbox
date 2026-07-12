@@ -1,0 +1,106 @@
+#!/usr/bin/expect -f
+
+set timeout 900
+set repo ""
+set prompt_file ""
+set trust_workspace 0
+
+for {set i 0} {$i < $argc} {incr i} {
+    set arg [lindex $argv $i]
+    switch -- $arg {
+        --repo {
+            incr i
+            set repo [lindex $argv $i]
+        }
+        --prompt-file {
+            incr i
+            set prompt_file [lindex $argv $i]
+        }
+        --trust-workspace {
+            set trust_workspace 1
+        }
+        --timeout {
+            incr i
+            set timeout [lindex $argv $i]
+        }
+        default {
+            puts stderr "Unknown argument: $arg"
+            exit 2
+        }
+    }
+}
+
+if {$repo eq "" || $prompt_file eq ""} {
+    puts stderr {Usage: claude-artifact.exp --repo DIR --prompt-file FILE [--trust-workspace] [--timeout SECONDS]}
+    exit 2
+}
+if {![file isdirectory $repo]} {
+    puts stderr "Workspace is not a directory: $repo"
+    exit 2
+}
+if {![file isfile $prompt_file]} {
+    puts stderr "Work order is not a file: $prompt_file"
+    exit 2
+}
+
+set fh [open $prompt_file r]
+set prompt [read $fh]
+close $fh
+if {[string trim $prompt] eq ""} {
+    puts stderr "Work order is empty: $prompt_file"
+    exit 2
+}
+
+cd $repo
+set env(CLAUDE_CODE_ARTIFACT_AUTO_OPEN) 0
+set artifact_url ""
+set published_seen 0
+set exit_sent 0
+
+spawn -noecho claude --model sonnet --permission-mode auto $prompt
+
+expect {
+    -re {Published|Updated} {
+        set published_seen 1
+        exp_continue
+    }
+    -re {https://claude\.ai/code/artifact/[A-Za-z0-9-]+} {
+        if {$published_seen && $artifact_url eq ""} {
+            set artifact_url $expect_out(0,string)
+        }
+        if {$published_seen && !$exit_sent} {
+            after 1500
+            send -- "/exit\r"
+            set exit_sent 1
+        }
+        exp_continue
+    }
+    -re {Yes, I trust this folder} {
+        if {$trust_workspace} {
+            send -- "\r"
+            exp_continue
+        }
+        send -- "2\r"
+        expect eof
+        puts stderr "Workspace trust is not established. Inspect the path, then re-run with --trust-workspace if appropriate."
+        exit 3
+    }
+    timeout {
+        send -- "\003"
+        after 500
+        send -- "/exit\r"
+        puts stderr "Timed out waiting for Claude to publish an Artifact."
+        exit 4
+    }
+    eof {
+        # Continue below to validate whether publication occurred.
+    }
+}
+
+if {$artifact_url eq ""} {
+    puts stderr "Claude exited without returning a hosted Artifact URL."
+    exit 5
+}
+
+puts "ARTIFACT_URL=$artifact_url"
+exit 0

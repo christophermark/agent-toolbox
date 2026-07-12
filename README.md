@@ -20,6 +20,7 @@ are agent-first by design.
 | Tool | Type | Agents | What it does |
 |---|---|---|---|
 | [delegation-system](tools/delegation-system/) | system (multi-file) | Claude Code (+ Codex CLI) | Turns a premium main-loop model into an orchestrator that routes work to cheaper Sonnet subagents (Explore / researcher / implementer / verifier) and to a sandboxed Codex lane — preserving main-thread context and cutting cost |
+| [artifact](tools/artifact/) | skill | Codex + Claude Code | Lets Codex delegate reports and visual explanations to Claude Sonnet and return a creator-private, hosted Claude Artifact URL |
 
 ## How a tool is packaged
 

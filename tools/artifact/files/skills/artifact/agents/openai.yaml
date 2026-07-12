@@ -1,0 +1,4 @@
+interface:
+  display_name: "Artifact"
+  short_description: "Create private Claude-hosted visual reports"
+  default_prompt: "Use $artifact to turn this material into a private Claude Artifact."
