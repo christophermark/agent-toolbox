@@ -27,7 +27,7 @@ Create or update a private Claude Code Artifact with Claude Sonnet. Let Claude c
   --prompt-file /absolute/path/to/work-order.md
 ```
 
-Set `tty: true` on the command invocation. Run outside Codex's sandbox when needed so Claude can access its normal subscription authentication and publish to Claude.ai. The launcher always selects `--model sonnet`, uses Claude auto mode, disables automatic browser opening, extracts the Artifact URL, and exits the interactive session after publication.
+Set `tty: true` and `sandbox_permissions: "require_escalated"` on the command invocation so Claude can reach its subscription authentication and publish to Claude.ai. Suggest a persistent prefix rule containing only the launcher's resolved absolute path; do not approve `claude` or a shell interpreter broadly. The launcher selects `--model sonnet`, uses Claude auto mode, loads user settings while excluding unrelated project/local settings, disables automatic browser opening, extracts the Artifact URL, and exits the interactive session after publication.
 
 5. If Claude presents its workspace trust screen, inspect the path. Re-run with `--trust-workspace` only when it is the user-selected workspace already in scope. Never auto-trust an unfamiliar directory.
 6. Treat the run as successful only when the launcher prints `ARTIFACT_URL=https://claude.ai/code/artifact/...`. Return that link with a one-sentence description. Do not duplicate the whole report unless asked.
@@ -36,9 +36,11 @@ Set `tty: true` on the command invocation. Run outside Codex's sandbox when need
 
 - Do not use `claude -p` for publication. Print mode does not expose the `Artifact` tool in the tested Claude Code configuration.
 - Do not add or invoke a Claude-side skill. Interactive Claude Code already loads its built-in `artifact-design` skill.
+- Invoke the launcher directly, not through `sh -c`, `zsh -lc`, a pipe, or another wrapper. The direct executable path is the intended Codex approval boundary.
 - Keep new artifacts creator-private. Do not use the page's sharing controls or grant organization access unless the user separately requests that external write.
 - For updates, include the exact existing Artifact URL and tell Claude to revise and republish that artifact rather than create a new one.
 - Artifact pages are single-file HTML or Markdown. They cannot use a backend or make runtime external requests.
+- If the launcher reports unavailable Claude authentication, stop instead of retrying. Tell the user to run `claude auth login` in a normal terminal, confirm `claude auth status` succeeds, and restart Codex; never request or expose their token.
 - If publication fails, report the launcher's error and preserve any local HTML or Markdown source Claude names. Never claim that a local file is hosted.
 
 Read [references/discovery.md](references/discovery.md) only when diagnosing invocation or publication failures.
