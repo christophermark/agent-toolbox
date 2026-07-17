@@ -15,7 +15,7 @@ Routing — cheapest worker that can do the job well:
 - A fork: side tasks that need the full conversation context (a fresh subagent would need too much re-explaining).
 
 How to delegate well:
-- Dispatch independent subtasks to subagents in parallel (3–5 concurrent) and keep working while they run; intervene if one goes off track or is missing context.
+- Dispatch independent subtasks to subagents in parallel and keep working while they run; intervene if one goes off track or is missing context. Let the task's structure set the fan-out — one worker for a simple lookup, a handful for typical multi-part work, ten or more when it genuinely decomposes — not a fixed count.
 - Sequence lanes: dispatch every read/audit lane that must observe the current state before any lane that will change it.
 - For follow-ups, resume the existing subagent via SendMessage rather than spawning a fresh one — it keeps its context and cache. SendMessage also re-engages a worker that went idle without reporting.
 - Hand every subagent a work order: goal, exact paths/symbols, constraints and non-goals, expected proof, and the return shape. Ask for a short evidence-backed brief; have bulk output written to `.delegate/scratch/` and read back only what you need.

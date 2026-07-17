@@ -9,7 +9,7 @@ These come from Anthropic's Fable 5 prompting guide, the current Claude Code sub
 1. **The main thread is the scarce resource.** Delegation exists to protect the orchestrator's context window and judgment, not primarily to save money. A session at two-thirds context capacity degrades; every grep dump or test log you keep out of the main conversation is intelligence preserved. Cost savings are a side effect of routing bulk work to Sonnet and Codex.
 2. **The orchestrator keeps: goal understanding, architecture, judgment calls, integration, and final review.** Everything mechanical or read-heavy is a candidate for delegation. Ambiguous design work is never delegated — writing the spec *is* the work.
 3. **Cheapest model that can do the job well — with a quality floor.** Sonnet handles everything delegated (retrieval, research synthesis, mechanical implementation, verification); the main model is reserved for orchestration; Codex is an out-of-band lane for large read-heavy jobs and cross-model second opinions. Haiku was considered for the retrieval lane and deliberately rejected: exploration output is navigation ground truth for the orchestrator, and a small model's silent false negatives ("no other call sites exist") poison downstream decisions in exactly the way this system is supposed to prevent. Community measurements report 50–80% cost reduction with no visible quality drop from the orchestrator/executor split alone.
-4. **Fable-era mechanics, not Opus-era mechanics.** Fable 5 dispatches parallel subagents reliably and manages long-lived ones. So: prefer background/parallel dispatch (3–5 concurrent), prefer *resuming* a live subagent over respawning (keeps its context and prompt cache), and use fresh-context **verifier** subagents instead of self-critique — Anthropic reports these outperform self-review.
+4. **Fable-era mechanics, not Opus-era mechanics.** Fable 5 dispatches parallel subagents reliably and manages long-lived ones. So: prefer background/parallel dispatch with fan-out scaled to the task's structure (a lookup needs one worker; work that genuinely decomposes justifies ten or more — Anthropic's own guidance scales fan-out to complexity rather than fixing a count, and the harness queues any excess), prefer *resuming* a live subagent over respawning (keeps its context and prompt cache), and use fresh-context **verifier** subagents instead of self-critique — Anthropic reports these outperform self-review.
 5. **Work orders in, evidence-backed briefs out.** Subagents start with zero session context. Every delegation carries: goal, exact paths/symbols, constraints and non-goals, expected proof, and the return shape. Bulk output goes to a scratch directory on disk; only the brief returns to the orchestrator.
 6. **Instructions stay short.** Fable-class models follow brief policy statements better than enumerated rulebooks; over-prescriptive skills measurably degrade output. The CLAUDE.md policy is deliberately compact — do not pad it.
 7. **Guardrails live in structure, not prose.** Read-only agents get read-only tools. Codex runs sandboxed (`read-only` or `workspace-write`), never with approvals bypassed. Commits, pushes, releases, secrets, and destructive ops never leave the main thread.
@@ -84,7 +84,7 @@ Verbatim prompts you can use or adapt:
   conversation (e.g. "draft tests for everything we changed so far"), use `/fork`
   or ask for a fork — it shares the prompt cache instead of paying re-explanation.
 
-Anti-patterns to avoid: delegating single-file edits (round-trip overhead exceeds the task), more than ~5 concurrent subagents, two subagents writing the same files, letting subagents return raw dumps instead of briefs, and delegating ambiguity.
+Anti-patterns to avoid: delegating single-file edits (round-trip overhead exceeds the task), fan-out mismatched to the task (a fleet for a single lookup, or more parallel lanes than you can meaningfully integrate), two subagents writing the same files, letting subagents return raw dumps instead of briefs, and delegating ambiguity.
 
 ## Troubleshooting
 
@@ -119,8 +119,10 @@ Battle-tested via a six-lane live shakedown (setup → background Codex audit �
 
 - Anthropic, "Prompting Claude Fable 5" — parallel/long-lived subagent guidance, fresh-context verifiers, short-instruction principle: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5
 - Claude Code subagent reference (frontmatter fields, Explore model change in v2.1.198, background-by-default, SendMessage resume, forks, memory): https://code.claude.com/docs/en/sub-agents
+- Anthropic, "How we built our multi-agent research system" — scale fan-out to query complexity (one agent for simple fact-finding, 2–4 for comparisons, 10+ for complex research): https://www.anthropic.com/engineering/multi-agent-research-system
+- Claude Code agent-teams reference — "no hard limit" on teammates; 3–5 is a starting point sized by task density, not a ceiling: https://code.claude.com/docs/en/agent-teams
 - Codex CLI: `codex exec --help` (v0.142.5) and the config reference: https://developers.openai.com/codex/config-reference
-- Totalum, "Claude Code subagents: the 2026 production playbook" — delegation criteria, 3–5 concurrency sweet spot, anti-patterns: https://www.totalum.app/blog/claude-code-subagents-totalum
+- Totalum, "Claude Code subagents: the 2026 production playbook" — delegation criteria and anti-patterns (its fixed "3–5 concurrency sweet spot" was dropped from this system in favor of task-scaled fan-out): https://www.totalum.app/blog/claude-code-subagents-totalum
 - Rylaa/fable5-orchestrator — tier routing, disk hand-offs, threshold-gated delegation: https://github.com/Rylaa/fable5-orchestrator
 - OpenAI Codex CLI subagents doc: https://developers.openai.com/codex/subagents
 - openai/codex-plugin-cc (official Codex-from-Claude-Code plugin): https://github.com/openai/codex-plugin-cc
