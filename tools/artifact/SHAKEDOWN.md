@@ -45,6 +45,9 @@ do not delete the hosted Artifact.
 | Symptom | Likely cause | First move |
 |---|---|---|
 | `Artifact` is unavailable | Account, organization policy, or surface does not expose it | Confirm interactive Claude Code access and review the Artifact requirements |
+| `claude auth status` reports `loggedIn: false` | Claude has no usable credential in the launch environment | Run `claude auth login` in a normal terminal, resolve any `claude doctor` Keychain warning, restart Codex, and retry |
 | Launcher reports workspace trust failure | Claude has not trusted the selected workspace | Inspect the path, then rerun with `--trust-workspace` only if it is in scope |
 | Claude exits without a URL | Publication failed or only a local page was created | Preserve the named local HTML/Markdown file and inspect Claude's error |
+| Codex asks before every launch | Exact installed launcher path is missing from `~/.codex/rules/default.rules` | Add the narrow `allow` prefix rule from `INSTALL.md`; do not approve `claude` or a shell broadly |
+| Claude prints invalid `Write(...)` permission warnings | A loaded user settings file uses obsolete file-edit rule syntax | Replace equivalent `Write(...)` rules with `Edit(...)`, then rerun `claude doctor` |
 | Drift check fails | Installed skill differs from the canonical payload | Review `diff -ru`, then reinstall from `files/` if appropriate |

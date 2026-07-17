@@ -51,13 +51,22 @@ if {[string trim $prompt] eq ""} {
     exit 2
 }
 
+if {[catch {exec claude auth status} auth_status]} {
+    puts stderr "Claude authentication is unavailable in the launcher environment. Run 'claude auth login' and confirm 'claude auth status' succeeds before retrying."
+    exit 6
+}
+
 cd $repo
 set env(CLAUDE_CODE_ARTIFACT_AUTO_OPEN) 0
 set artifact_url ""
 set published_seen 0
 set exit_sent 0
 
-spawn -noecho claude --model sonnet --permission-mode auto $prompt
+# Project and local Claude settings are intentionally excluded. Artifact
+# publication is infrastructure for this Codex skill, and unrelated repository
+# permissions or hooks must not alter or block the launcher. User settings remain
+# available for authentication and organization policy.
+spawn -noecho claude --model sonnet --permission-mode auto --setting-sources user $prompt
 
 expect {
     -re {Published|Updated} {
@@ -75,7 +84,7 @@ expect {
         }
         exp_continue
     }
-    -re {Yes, I trust this folder} {
+    -re {Yes,.*trust.*this.*folder} {
         if {$trust_workspace} {
             send -- "\r"
             exp_continue

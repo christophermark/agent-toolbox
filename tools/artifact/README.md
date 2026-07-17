@@ -8,6 +8,10 @@ Claude chooses the presentation itself unless the request includes design
 constraints. The skill screens source files before delegation, keeps new
 artifacts private to their creator, and can update an existing Artifact in place.
 
+The launcher loads Claude's user settings for authentication and organization
+policy but excludes project and local settings. This keeps unrelated repository
+hooks, MCP servers, and permission rules out of the publication session.
+
 ## Why the launcher is interactive
 
 Discovery against Claude Code 2.1.207 found that `claude -p` supports ordinary
@@ -25,7 +29,8 @@ Give an implementing agent this prompt:
 
 ```text
 Read tools/artifact/INSTALL.md and install as described. Show me diffs before
-overwriting anything that already exists.
+overwriting anything that already exists, and configure the exact-path Codex
+launcher approval described there.
 ```
 
 ## Use
@@ -51,8 +56,12 @@ trigger it. To revise an existing page, include its Artifact URL.
 
 - Codex with personal skills support.
 - Claude Code with the `Artifact` tool enabled for the signed-in account.
+- `claude auth status` succeeding in the same environment that launches the
+  skill; the launcher fails fast with setup guidance otherwise.
 - A Claude plan and organization policy that permit Claude Code Artifacts.
 - `expect` on `PATH` (the payload uses `/usr/bin/expect`).
+- A persistent Codex `allow` prefix rule for the installed launcher's resolved
+  absolute path when approval-free repeat usage is desired.
 
 ## Privacy
 
