@@ -28,6 +28,8 @@ These come from Anthropic's Fable 5 prompting guide, the current Claude Code sub
 
 Division of labor at a glance: **Sonnet finds, does, and checks. Codex second-opinions. The main model decides, integrates, and signs off.**
 
+This system deliberately stops at report-back subagents plus one external CLI. For work that needs teammates coordinating directly with each other, or fan-out into dozens of independent units, reach for Claude Code's built-in [agent teams](https://code.claude.com/docs/en/agent-teams) or [Dynamic Workflows](https://code.claude.com/docs/en/workflows) instead — the same orchestrator-keeps-judgment principles apply.
+
 ## Install
 
 Give an implementing agent this prompt:
@@ -107,13 +109,14 @@ Anti-patterns to avoid: delegating single-file edits (round-trip overhead exceed
 - If a future Claude Code version warns about unknown frontmatter fields (`memory`, `effort`, `maxTurns`), consult current docs at https://code.claude.com/docs/en/sub-agents and adapt.
 - OpenAI ships an official alternative to the wrapper ([openai/codex-plugin-cc](https://github.com/openai/codex-plugin-cc), installed via `/plugin marketplace add openai/codex-plugin-cc`). The wrapper here is kept because it enforces the sandbox/mode contract and file-based work orders; the plugin adds interactive review commands if you want both.
 - Non-interactive `codex exec` cannot answer approval prompts (they fail if no prompt surface exists), so `approval_policy="never"` is correct for all modes and safety comes entirely from the sandbox tier.
+- Codex `--strict-config` (added by 0.144.x) was evaluated and deliberately left out of the wrapper: it validates the user's entire `~/.codex/config.toml`, not just the wrapper's `-c` overrides, so one unrecognized key in a personal config (e.g. written by a newer Codex desktop app) would break every delegated call. It remains useful as a manual lint when debugging the "`-c` override seems ignored" symptom.
 - `codex exec` refuses to run outside a git repository by default. The wrapper detects this: research/patch add `--skip-git-repo-check` for non-git targets; write mode hard-fails instead, because without git the edits aren't reviewable or reversible.
 - The work-order file is combined with per-mode delegation rules into one prompt fed via stdin (`codex exec ... -`), and the final message lands in the `--output` file so the orchestrator reads a file instead of scraping a terminal stream.
 - On success the wrapper emits a one-line provenance record (mode/model/effort) to stderr before printing the output path, so delegation audits can attribute results without digging through the Codex config.
 
 ## Provenance
 
-Battle-tested via a six-lane live shakedown (setup → background Codex audit → Explore → researcher → implementer → verifier) on 2026-07-09. Earlier self-contained versions were published as gists: [full plan](https://gist.github.com/christophermark/50e0487fce92d7de176bdc8bb5c8ea5e), [subagent setup](https://gist.github.com/christophermark/da8972564a630ae4583c5d54c481fe3c), [Codex bridge](https://gist.github.com/christophermark/3f1a85d11b91b980258f973c2ec94c8f) — this repo is now canonical.
+Battle-tested via a six-lane live shakedown (setup → background Codex audit → Explore → researcher → implementer → verifier) on 2026-07-09. Wrapper flags and config keys re-verified against codex-cli 0.144.5 on 2026-07-17 — compatible, no changes needed. Earlier self-contained versions were published as gists: [full plan](https://gist.github.com/christophermark/50e0487fce92d7de176bdc8bb5c8ea5e), [subagent setup](https://gist.github.com/christophermark/da8972564a630ae4583c5d54c481fe3c), [Codex bridge](https://gist.github.com/christophermark/3f1a85d11b91b980258f973c2ec94c8f) — this repo is now canonical.
 
 ## Sources
 
@@ -121,6 +124,7 @@ Battle-tested via a six-lane live shakedown (setup → background Codex audit �
 - Claude Code subagent reference (frontmatter fields, Explore model change in v2.1.198, background-by-default, SendMessage resume, forks, memory): https://code.claude.com/docs/en/sub-agents
 - Anthropic, "How we built our multi-agent research system" — scale fan-out to query complexity (one agent for simple fact-finding, 2–4 for comparisons, 10+ for complex research): https://www.anthropic.com/engineering/multi-agent-research-system
 - Claude Code agent-teams reference — "no hard limit" on teammates; 3–5 is a starting point sized by task density, not a ceiling: https://code.claude.com/docs/en/agent-teams
+- Claude Code Dynamic Workflows — the sanctioned high-fan-out mechanism (16 concurrent, 1,000 agents per run) for work that decomposes into dozens-plus independent units: https://code.claude.com/docs/en/workflows
 - Codex CLI: `codex exec --help` (v0.142.5) and the config reference: https://developers.openai.com/codex/config-reference
 - Totalum, "Claude Code subagents: the 2026 production playbook" — delegation criteria and anti-patterns (its fixed "3–5 concurrency sweet spot" was dropped from this system in favor of task-scaled fan-out): https://www.totalum.app/blog/claude-code-subagents-totalum
 - Rylaa/fable5-orchestrator — tier routing, disk hand-offs, threshold-gated delegation: https://github.com/Rylaa/fable5-orchestrator
