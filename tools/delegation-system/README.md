@@ -121,6 +121,7 @@ Battle-tested via a six-lane live shakedown (setup → background Codex audit �
 
 ## Sources
 
+- Anthropic, "The new rules of context engineering for Claude 5-generation models" — why the policy file stays thin: principles over hard rules, mechanics belong in tool descriptions, gotchas are what earn always-loaded context, and conflicting directives cost efficiency: https://claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models
 - Anthropic, "Prompting Claude Fable 5" — parallel/long-lived subagent guidance, fresh-context verifiers, short-instruction principle: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5
 - Claude Code subagent reference (frontmatter fields, Explore model change in v2.1.198, background-by-default, SendMessage resume, forks, memory): https://code.claude.com/docs/en/sub-agents
 - Anthropic, "How we built our multi-agent research system" — scale fan-out to query complexity (one agent for simple fact-finding, 2–4 for comparisons, 10+ for complex research): https://www.anthropic.com/engineering/multi-agent-research-system
