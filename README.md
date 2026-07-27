@@ -21,6 +21,7 @@ are agent-first by design.
 |---|---|---|---|
 | [delegation-system](tools/delegation-system/) | system (multi-file) | Claude Code (+ Codex CLI) | Turns a premium main-loop model into an orchestrator that routes work to cheaper Sonnet subagents (Explore / researcher / implementer / verifier) and to a sandboxed Codex lane — preserving main-thread context and cutting cost |
 | [artifact](tools/artifact/) | skill | Codex + Claude Code | Lets Codex delegate reports and visual explanations to Claude Sonnet and return a creator-private, hosted Claude Artifact URL |
+| [usage-preflight](tools/usage-preflight/) | system (multi-file) | Claude Code | Gives the agent a way to read remaining subscription usage before it starts an expensive fan-out, review, or workflow — with an explicit policy for stale and missing data so absent numbers are never read as zero |
 
 ## How a tool is packaged
 
