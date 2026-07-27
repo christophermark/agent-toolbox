@@ -1,15 +1,52 @@
 #!/usr/bin/env bash
-# Detects drift between this tool's files/ payloads and the installed
-# ~/.claude delegation system. Does not modify anything.
+# Detects drift between the delegation-system payloads and the installed
+# ~/.claude files. By default compares against the latest published payloads
+# on GitHub main (upstream); pass --local to compare against this checkout's
+# files/ instead (offline, or when iterating on unpushed payload changes).
+# Does not modify anything.
 set -uo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-files_dir="$script_dir/files"
+remote_base="https://raw.githubusercontent.com/christophermark/agent-toolbox/main/tools/delegation-system/files"
+
+mode="remote"
+case "${1:-}" in
+  --local) mode="local" ;;
+  "") ;;
+  *) echo "usage: $0 [--local]" >&2; exit 2 ;;
+esac
 
 status=0
+tmp_dir=""
+if [[ "$mode" == "remote" ]]; then
+  tmp_dir="$(mktemp -d)"
+  trap 'rm -rf "$tmp_dir"' EXIT
+  echo "# comparing against upstream main ($remote_base)"
+else
+  echo "# comparing against local checkout ($script_dir/files)"
+fi
+
+# Prints a local path holding the payload for relative path $1.
+# In remote mode, fetches from GitHub main; returns 1 on fetch failure.
+payload_for() {
+  local rel="$1"
+  if [[ "$mode" == "local" ]]; then
+    echo "$script_dir/files/$rel"
+  else
+    local out="$tmp_dir/${rel//\//__}"
+    curl -fsS --max-time 15 "$remote_base/$rel" -o "$out" || return 1
+    echo "$out"
+  fi
+}
 
 check_pair() {
-  local payload="$1" target="$2"
+  local rel="$1" target="$2"
+  local payload
+  if ! payload="$(payload_for "$rel")"; then
+    echo "FETCH-FAIL $target (couldn't retrieve $remote_base/$rel — offline or file not on main; try --local)"
+    status=1
+    return
+  fi
   if [[ ! -e "$target" ]]; then
     echo "MISSING $target"
     status=1
@@ -21,22 +58,24 @@ check_pair() {
   fi
 }
 
-check_pair "$files_dir/agents/explore.md"    "$HOME/.claude/agents/explore.md"
-check_pair "$files_dir/agents/researcher.md" "$HOME/.claude/agents/researcher.md"
-check_pair "$files_dir/agents/implementer.md" "$HOME/.claude/agents/implementer.md"
-check_pair "$files_dir/agents/verifier.md"   "$HOME/.claude/agents/verifier.md"
-check_pair "$files_dir/skills/delegate-to-codex/SKILL.md" "$HOME/.claude/skills/delegate-to-codex/SKILL.md"
-check_pair "$files_dir/skills/delegate-to-codex/scripts/codex-delegate.sh" "$HOME/.claude/skills/delegate-to-codex/scripts/codex-delegate.sh"
+check_pair "agents/explore.md"     "$HOME/.claude/agents/explore.md"
+check_pair "agents/researcher.md"  "$HOME/.claude/agents/researcher.md"
+check_pair "agents/implementer.md" "$HOME/.claude/agents/implementer.md"
+check_pair "agents/verifier.md"    "$HOME/.claude/agents/verifier.md"
+check_pair "skills/delegate-to-codex/SKILL.md" "$HOME/.claude/skills/delegate-to-codex/SKILL.md"
+check_pair "skills/delegate-to-codex/scripts/codex-delegate.sh" "$HOME/.claude/skills/delegate-to-codex/scripts/codex-delegate.sh"
 
 # CLAUDE.md holds the delegation section among other content; extract just
 # the "## Delegation" section (heading through the line before the next
 # "## " heading, or EOF), trim trailing blank lines, and diff that against
 # the payload.
 claude_md="$HOME/.claude/CLAUDE.md"
-delegation_payload="$files_dir/claude-md/delegation.md"
 target_label="$claude_md (## Delegation section)"
 
-if [[ ! -e "$claude_md" ]]; then
+if ! delegation_payload="$(payload_for "claude-md/delegation.md")"; then
+  echo "FETCH-FAIL $target_label (couldn't retrieve $remote_base/claude-md/delegation.md — offline or file not on main; try --local)"
+  status=1
+elif [[ ! -e "$claude_md" ]]; then
   echo "MISSING $target_label"
   status=1
 else

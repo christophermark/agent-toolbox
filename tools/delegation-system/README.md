@@ -43,8 +43,13 @@ Read tools/delegation-system/INSTALL.md and install as described. Show me diffs 
 
 Two layers:
 
-- **Static** — `./check.sh` diffs every installed file against `files/`; seven
-  `OK` lines means no drift.
+- **Static** — `./check.sh` diffs every installed file against the latest
+  payloads published on GitHub `main` (fetched from raw.githubusercontent.com);
+  seven `OK` lines means no drift from upstream. Pass `--local` to compare
+  against this checkout's `files/` instead — offline, or when iterating on
+  unpushed payload changes. Note: the `## Delegation` section of
+  `~/.claude/CLAUDE.md` is edited live and intentionally not synced back, so a
+  `DRIFT` line for it is expected.
 - **Dynamic** — [SHAKEDOWN.md](SHAKEDOWN.md) is a prompt you hand to your
   orchestrator session: it plants a bug in a throwaway repo, exercises all six
   delegation lanes against it (background Codex audit, Explore, researcher,
