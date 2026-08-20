@@ -43,7 +43,12 @@ No file needs an executable bit.
 `LICENSE` and `NOTICE.md` are part of the payload, not repository bookkeeping.
 The skill is third-party MIT-licensed work (copyright (c) 2026 Daniel Green) that
 condenses CC BY 4.0 Google material. Copy both files with the rest and do not
-strip them.
+strip them, and do not edit `LICENSE`.
+
+`SKILL.md` is titled `Simply` in this payload; the upstream original was titled
+`NBJ Write Clearly`. `NOTICE.md` records that rename. Keep both as they are — if
+you meet an installed copy still carrying the old title, treat it as drift to
+replace, not as a local improvement to preserve.
 
 ## Idempotency
 

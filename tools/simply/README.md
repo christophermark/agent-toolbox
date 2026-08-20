@@ -65,10 +65,16 @@ Documentation work described in natural language can also trigger it.
 
 ## Attribution
 
-The payload under `files/skills/simply/` is third-party work, redistributed
-unchanged under the MIT license: copyright (c) 2026 Daniel Green. Its `LICENSE`
-and `NOTICE.md` travel with the skill and must stay in place.
+The payload under `files/skills/simply/` is third-party work by Daniel Green,
+redistributed under the MIT license it ships with. `LICENSE` is reproduced
+verbatim, and both `LICENSE` and `NOTICE.md` travel with the skill — keep them in
+place.
 
-The skill is unofficial and is not endorsed by Google. `NOTICE.md` records the
-Google Style Guide's CC BY 4.0 terms and the review date of the condensed
+The MIT license permits modification, so this copy renames the skill's title from
+`NBJ Write Clearly` to `Simply` to match its directory and invocation name. The
+guidance and references are otherwise untouched, and `NOTICE.md` records the
+change.
+
+The skill is unofficial and is not endorsed by Google. `NOTICE.md` also carries
+the Google Style Guide's CC BY 4.0 terms and the review date of the condensed
 guidance.
