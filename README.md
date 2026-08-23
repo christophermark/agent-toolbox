@@ -23,6 +23,7 @@ are agent-first by design.
 | [artifact](tools/artifact/) | skill | Codex + Claude Code | Lets Codex delegate reports and visual explanations to Claude Sonnet and return a creator-private, hosted Claude Artifact URL |
 | [usage-preflight](tools/usage-preflight/) | system (multi-file) | Claude Code | Gives the agent a way to read remaining subscription usage before it starts an expensive fan-out, review, or workflow — with an explicit policy for stale and missing data so absent numbers are never read as zero |
 | [simply](tools/simply/) | skill | Claude Code | Drafts, revises, and audits documentation against condensed Google developer-style guidance — result first, actor named, source facts and hedging preserved |
+| [statusline](tools/statusline/) | system (multi-file) | Claude Code | Five swappable status lines on one fork-free core — context pressure, spend, burn rate, rate-limit windows with reset countdowns, worktree/PR/agent context — plus a per-subagent line showing each agent's context trend, and a preview harness for comparing variants without waiting for a live session |
 
 ## How a tool is packaged
 
