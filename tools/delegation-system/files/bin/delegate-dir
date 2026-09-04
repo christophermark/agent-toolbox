@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+# delegate-dir — resolve (and maintain) the shared delegation store for the
+# current project. Every clone, worktree, and tmux session of the same repo
+# resolves to the same directory, keyed by the git origin remote, so briefs
+# and bulk output hand off across sessions without leaving anything inside
+# the repo itself.
+#
+# Usage:
+#   delegate-dir                 print this project's store dir (creates it)
+#   delegate-dir scratch <slug>  create and print a task-scoped scratch subdir
+#   delegate-dir prune           prune the whole store now, report what's left
+#
+# Layout: ~/.claude/delegate/<project-key>/
+#   scratch/   bulk subagent output (logs, dumps, inventories). Ephemeral:
+#              files older than 7 days are deleted.
+#   threads/   cross-session handoff briefs — one markdown file per thread,
+#              frontmatter carrying `status: active|done` plus a `source:`
+#              line (clone path @ branch). `done` threads are deleted 14 days
+#              after last touch; ANY thread is deleted after 45 days, so
+#              anything worth keeping longer belongs in the repo or memory.
+#
+# Retention is enforced opportunistically: every invocation prunes the store
+# if it hasn't been pruned in the last day. No daemon, no unbounded growth.
+set -euo pipefail
+
+STORE="${CLAUDE_DELEGATE_STORE:-$HOME/.claude/delegate}"
+SCRATCH_TTL_DAYS=7
+DONE_THREAD_TTL_DAYS=14
+MAX_THREAD_AGE_DAYS=45
+
+usage() {
+  sed -n '2,12p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
+}
+
+slug() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9._' '-' \
+    | sed 's/^-*//; s/-*$//'
+}
+
+short_hash() {
+  printf '%s' "$1" | shasum | cut -c1-8
+}
+
+# Same key for every clone/worktree of a repo: <org>-<repo> from the origin
+# remote. Non-git (or remote-less) directories fall back to a path-hashed key
+# so unrelated projects with the same basename never collide.
+project_key() {
+  local url root repo org
+  if url=$(git remote get-url origin 2>/dev/null) && [[ -n "$url" ]]; then
+    url="${url%/}"
+    url="${url%.git}"
+    repo="${url##*/}"
+    org="${url%/*}"
+    org="${org##*[/:]}"
+    slug "$org-$repo"
+  elif root=$(git rev-parse --show-toplevel 2>/dev/null); then
+    printf 'local-%s-%s' "$(slug "$(basename "$root")")" "$(short_hash "$root")"
+  else
+    printf 'local-%s-%s' "$(slug "$(basename "$PWD")")" "$(short_hash "$PWD")"
+  fi
+}
+
+prune() {
+  local verbose="${1:-}"
+  [[ -d "$STORE" ]] || return 0
+
+  # Scratch is ephemeral: age out files, then sweep empty dirs below.
+  find "$STORE" -path '*/scratch/*' -type f -mtime "+$SCRATCH_TTL_DAYS" -delete 2>/dev/null || true
+
+  # Threads: closed ones go after their grace period; nothing outlives the cap.
+  local f
+  while IFS= read -r -d '' f; do
+    if head -n 8 "$f" | grep -qiE '^status:[[:space:]]*done'; then
+      rm -f "$f"
+    fi
+  done < <(find "$STORE" -path '*/threads/*' -type f -mtime "+$DONE_THREAD_TTL_DAYS" -print0 2>/dev/null)
+  find "$STORE" -path '*/threads/*' -type f -mtime "+$MAX_THREAD_AGE_DAYS" -delete 2>/dev/null || true
+
+  find "$STORE" -mindepth 1 -type d -empty -delete 2>/dev/null || true
+  mkdir -p "$STORE"
+  touch "$STORE/.last-prune"
+
+  if [[ "$verbose" == "-v" ]]; then
+    local stale
+    stale=$(find "$STORE" -path '*/threads/*' -type f -mtime "+$DONE_THREAD_TTL_DAYS" 2>/dev/null || true)
+    if [[ -n "$stale" ]]; then
+      printf 'still-open threads older than %sd (mark done or they expire at %sd):\n%s\n' \
+        "$DONE_THREAD_TTL_DAYS" "$MAX_THREAD_AGE_DAYS" "$stale" >&2
+    fi
+    du -sh "$STORE" >&2
+  fi
+}
+
+maybe_prune() {
+  local stamp="$STORE/.last-prune"
+  if [[ ! -e "$stamp" ]] || [[ -n "$(find "$stamp" -mtime +1 2>/dev/null)" ]]; then
+    prune
+  fi
+}
+
+main() {
+  mkdir -p "$STORE"
+  case "${1:-}" in
+    prune)
+      prune -v
+      return 0
+      ;;
+    -h|--help|help)
+      usage
+      return 0
+      ;;
+  esac
+
+  maybe_prune
+  local dir="$STORE/$(project_key)"
+  mkdir -p "$dir/scratch" "$dir/threads"
+
+  case "${1:-}" in
+    "")
+      printf '%s\n' "$dir"
+      ;;
+    scratch)
+      if [[ -z "${2:-}" ]]; then
+        echo "usage: delegate-dir scratch <task-slug>" >&2
+        return 2
+      fi
+      local sub="$dir/scratch/$(date +%F)-$(slug "$2")"
+      mkdir -p "$sub"
+      printf '%s\n' "$sub"
+      ;;
+    *)
+      usage
+      return 2
+      ;;
+  esac
+}
+
+main "$@"

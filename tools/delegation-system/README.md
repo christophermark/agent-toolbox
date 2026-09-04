@@ -25,9 +25,34 @@ These come from Anthropic's Fable 5 prompting guide, the current Claude Code sub
 | Implementer | `files/agents/implementer.md` | Sonnet, edit+bash, turn-bounded | Mechanical execution of frozen approaches |
 | Verifier | `files/agents/verifier.md` | Sonnet, read+bash, fresh context, persistent memory | Checks finished work against spec; replaces self-review |
 | Codex bridge | `files/skills/delegate-to-codex/` (SKILL.md + wrapper script) | Codex CLI, sandboxed `codex exec` | Large read-heavy jobs, bulk patch drafting, bounded write tasks, cross-model review |
-| Scratch convention | `.delegate/scratch/` per repo | — | Disk handoff for bulk material so it never enters the main context |
+| Shared delegate store | `files/bin/delegate-dir` → `~/.claude/bin/delegate-dir` | — | Disk handoff for bulk material and cross-session threads; one self-pruning store per project, shared by every clone, worktree, and tmux session |
 
 Division of labor at a glance: **Sonnet finds, does, and checks. Codex second-opinions. The main model decides, integrates, and signs off.**
+
+### The shared delegate store
+
+Disk handoffs used to live in a `.delegate/scratch/` directory inside each repo. That polluted `git status` in every project, gave each clone of the same repo (e.g. `~/dev/1scanner-app`, `~/dev/2scanner-app`) its own invisible silo, and grew without bound. The store replaces it:
+
+```
+~/.claude/delegate/<org>-<repo>/     # key derived from the origin remote
+  scratch/                           # bulk subagent output (logs, dumps, inventories)
+    2026-07-27-<task-slug>/          # optional task-scoped subdirs via `delegate-dir scratch <slug>`
+  threads/                           # cross-session handoff briefs, one .md per thread
+```
+
+`~/.claude/bin/delegate-dir` resolves the current project's store directory. Because the key comes from `git remote get-url origin` (normalized), every clone, linked worktree, and tmux session of the same repo resolves to the same place — a brief written during a review in one clone is readable from a session in another, and nothing ever lands inside a repo. Non-git directories fall back to a path-hashed key. The orchestrator resolves the path once per session and passes absolute paths in work orders, so subagents spend zero tokens on discovery.
+
+Thread files carry `status: active|done` and `source: <clone path> @ <branch>` frontmatter; the orchestrator marks a thread `done` when the work lands.
+
+Boundedness is enforced by the script itself — any invocation prunes the store if it hasn't been pruned in the past day (no daemon, no cron):
+
+| Content | Retention |
+|---|---|
+| `scratch/` files | deleted 7 days after last touch |
+| `threads/` with `status: done` | deleted 14 days after last touch |
+| any `threads/` file | deleted at 45 days, regardless of status |
+
+`delegate-dir prune` runs a sweep on demand and reports still-open threads older than 14 days plus the store's total size. Anything worth keeping past these windows belongs in the repo, a ticket, or agent memory — the store is a hand-off buffer, not an archive.
 
 This system deliberately stops at report-back subagents plus one external CLI. The boundary is not headcount but who controls flow: dispatch here is model-driven, so when the structure is known up front and must be deterministic — the same N items through M stages, or findings that need an adversarial verification pass — reach for [Dynamic Workflows](https://code.claude.com/docs/en/workflows), and for teammates that coordinate directly with each other reach for [agent teams](https://code.claude.com/docs/en/agent-teams). Neither replaces the routing above; a workflow *consumes* it, spawning these same agents via `agent(prompt, {agentType: 'researcher'})`.
 
