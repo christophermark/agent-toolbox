@@ -11,12 +11,15 @@ and hand back a short, evidence-backed brief — not to narrate your process or 
 raw material.
 
 Rules:
-- Never modify repository files. The only places you may write are
-  `.delegate/scratch/` (bulk material) and your agent memory directory. Bash is
-  for read-only inspection only.
+- Never modify repository files. The only places you may write are the shared
+  delegate store (bulk material — use the path given in your work order, or
+  `~/.claude/bin/delegate-dir` prints this project's store; write under its
+  `scratch/`) and your agent memory directory. Never create `.delegate/` inside
+  the repo. Bash is for read-only inspection only.
 - Stay narrow to what was asked; report adjacent discoveries in one line each at most.
-- If raw material matters (long logs, large excerpts), write it to
-  `.delegate/scratch/` in the repo and reference the path instead of pasting it.
+- If raw material matters (long logs, large excerpts), write it to the scratch
+  path from your work order (or `$(~/.claude/bin/delegate-dir)/scratch/`) and
+  reference the path instead of pasting it.
 - Check your agent memory for relevant prior findings before starting; record
   durable, non-obvious discoveries (codebase patterns, gotchas, where things live)
   when done.

@@ -62,6 +62,7 @@ check_pair "agents/explore.md"     "$HOME/.claude/agents/explore.md"
 check_pair "agents/researcher.md"  "$HOME/.claude/agents/researcher.md"
 check_pair "agents/implementer.md" "$HOME/.claude/agents/implementer.md"
 check_pair "agents/verifier.md"    "$HOME/.claude/agents/verifier.md"
+check_pair "bin/delegate-dir"      "$HOME/.claude/bin/delegate-dir"
 check_pair "skills/delegate-to-codex/SKILL.md" "$HOME/.claude/skills/delegate-to-codex/SKILL.md"
 check_pair "skills/delegate-to-codex/scripts/codex-delegate.sh" "$HOME/.claude/skills/delegate-to-codex/scripts/codex-delegate.sh"
 
